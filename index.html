@@ -1,0 +1,188 @@
+<html>
+	<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+	<link rel='stylesheet' href='spectrum.css' />
+	 <style>
+  	#draggable { 
+  		position: absolute;
+  		top:0;
+  		width: 183px; 
+  		height: 200px; 
+  		padding: 0.5em; 
+  	}
+
+  	#grid{
+  		image-rendering: optimizeSpeed;             
+		image-rendering: -moz-crisp-edges;         
+		image-rendering: -webkit-optimize-contrast; 
+		image-rendering: -o-crisp-edges;            
+		image-rendering: pixelated;                 
+		-ms-interpolation-mode: nearest-neighbor;
+  	}
+
+  	@media only screen and (max-width: 750px){
+  		#draggable{
+  			top:auto;
+  			bottom: 0;
+  			right:0;
+  			
+  		}
+
+  	}
+
+  	</style>
+	</head>
+
+	<body>
+		<canvas id="grid" width="2000px" height="1000px"></canvas>
+		<div id="draggable" class="ui-widget-content">
+ 		 <input type='text' id="flat" />
+		</div>
+
+		<script src="https://www.gstatic.com/firebasejs/3.7.4/firebase.js"></script>
+		<script>
+		  // Initialize Firebase
+		  var config = {
+		    apiKey: "AIzaSyDqkZUPQC_-2ziopwcY0nnspPCgLCUO31E",
+		    authDomain: "color-pixels.firebaseapp.com",
+		    databaseURL: "https://color-pixels.firebaseio.com",
+		    projectId: "color-pixels",
+		    storageBucket: "color-pixels.appspot.com",
+		    messagingSenderId: "828585539927"
+		  };
+		  firebase.initializeApp(config);
+		</script>
+		<script src="https://code.jquery.com/jquery-3.2.1.min.js"
+  		integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  		crossorigin="anonymous"></script>
+  		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  		<script src="jquery.ui.touch-punch.min.js"></script>
+  		<script src='spectrum.js'></script>
+		<script type="text/javascript">
+
+		   	var newItems = false;
+		   	var rightClick = 0;
+
+		   	$("#draggable").draggable();
+		   	$("#flat").spectrum({
+    			flat: true,
+				showPaletteOnly: true,
+    			showPalette:true,
+			    color: 'black',
+			    palette: [
+			        ["#000","#444","#666","#999","#ccc","#eee","#f3f3f3","#fff"],
+			        ["#f00","#f90","#ff0","#0f0","#0ff","#00f","#90f","#f0f"],
+			        ["#f4cccc","#fce5cd","#fff2cc","#d9ead3","#d0e0e3","#cfe2f3","#d9d2e9","#ead1dc"],
+			        ["#ea9999","#f9cb9c","#ffe599","#b6d7a8","#a2c4c9","#9fc5e8","#b4a7d6","#d5a6bd"],
+			        ["#e06666","#f6b26b","#ffd966","#93c47d","#76a5af","#6fa8dc","#8e7cc3","#c27ba0"],
+			        ["#c00","#e69138","#f1c232","#6aa84f","#45818e","#3d85c6","#674ea7","#a64d79"],
+			        ["#900","#b45f06","#bf9000","#38761d","#134f5c","#0b5394","#351c75","#741b47"],
+			        ["#600","#783f04","#7f6000","#274e13","#0c343d","#073763","#20124d","#4c1130"]
+			    ]
+			});
+
+			function getSquare(canvas, evt){
+				var grid = canvas.getBoundingClientRect();
+
+				return  {
+					x: (evt.clientX - grid.left) - (evt.clientX - grid.left)%10,
+					y: (evt.clientY - grid.top) - (evt.clientY - grid.top)%10
+				}
+			}
+
+			function drawGrid(){
+				for(var x = 0;x<2001;x+=10){
+					ctx.moveTo(x,0);
+					ctx.lineTo(x,2000);
+				}
+
+				for(var y = 0;y<2001;y+=10){
+					ctx.moveTo(0,y);
+					ctx.lineTo(2000,y);
+				}
+				ctx.strokeStyle='#ddd';
+				ctx.stroke();
+
+				setGrid(ctx);
+			}
+
+			function colorSquare(ctx, x, y, color){
+				ctx.fillStyle = color;
+				ctx.fillRect(x, y, 10, 10);
+			}
+
+			function setGrid(ctx){
+				firebase.database().ref('/pixels/').once('value').then(function(snapshot) {
+					newItems = true;
+					snapshot.forEach(function(childSnap){
+						var coord = childSnap.key.split(',');
+						var color = childSnap.val().Color;
+						colorSquare(ctx, coord[0], coord[1], color);
+					})
+				});
+			}
+
+
+			function savePixel(coord, color){
+				firebase.database().ref('pixels/' + coord).set({
+					Color: color
+				});
+			}
+
+			function deletePixel(coord){
+				firebase.database().ref('pixels/' + coord).remove();
+			}
+
+			var canvas = document.getElementById('grid');
+			var ctx = canvas.getContext('2d');
+
+			drawGrid(ctx);
+
+			canvas.addEventListener('click', function(evt){
+				var mousePosition = getSquare(canvas, evt);
+				var color = $('#flat').spectrum('get').toRgbString();
+				var coord = mousePosition.x+ "," + mousePosition.y;
+				console.log(color);
+				if(color=='rgb(255, 255, 255)'){
+					deletePixel(coord);
+				} else {
+					colorSquare(ctx, mousePosition.x, mousePosition.y, color);
+					savePixel(coord, color);
+				}
+
+			}, false);
+
+			canvas.addEventListener('contextmenu', function(evt) {
+
+			    evt.preventDefault();
+			    if(rightClick==0){
+			    	$('#grid').css('zoom','50%');
+			    	rightClick++;
+				} else if(rightClick==1){
+					rightClick--;
+					$('#grid').css('zoom','100%');
+				}
+			    return false;
+			}, false);
+
+			firebase.database().ref('/pixels/').on('child_added', function(snapshot) {
+				if (!newItems) return;
+
+			    var coord = snapshot.key.split(',');
+				var color = snapshot.val().Color;
+				colorSquare(ctx, coord[0], coord[1], color);
+
+			});
+
+			firebase.database().ref('/pixels/').on('child_removed', function(snapshot) {
+
+			    var coord = snapshot.key.split(',');
+			    console.log(coord);
+				colorSquare(ctx, coord[0], coord[1], 'rgb(255, 255, 255)');
+
+			});
+
+		</script>
+	</body>
+</html>
