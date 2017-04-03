@@ -143,7 +143,6 @@
 				var mousePosition = getSquare(canvas, evt);
 				var color = $('#flat').spectrum('get').toRgbString();
 				var coord = mousePosition.x+ "," + mousePosition.y;
-				console.log(color);
 				if(color=='rgb(255, 255, 255)'){
 					deletePixel(coord);
 				} else {
@@ -178,7 +177,6 @@
 			firebase.database().ref('/pixels/').on('child_removed', function(snapshot) {
 
 			    var coord = snapshot.key.split(',');
-			    console.log(coord);
 				colorSquare(ctx, coord[0], coord[1], 'rgb(255, 255, 255)');
 
 			});
