@@ -1,6 +1,6 @@
 # pixel-artist
 
-Draw colored pixels on a peristent grid
+Place colored pixels on a persistent grid and see pixels from other users be placed in real time.
 
 https://mtthai.github.io/pixel-artists/
 
